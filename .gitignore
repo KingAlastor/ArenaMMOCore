@@ -1,0 +1,32 @@
+# Build output
+bin/
+obj/
+
+# .NET
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.nupkg
+*.snupkg
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.rsuser
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# NuGet
+packages/
+*.lock.json
+!packages.lock.json
