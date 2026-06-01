@@ -30,3 +30,16 @@ Thumbs.db
 packages/
 *.lock.json
 !packages.lock.json
+
+# Unity
+GameClient/Library/
+GameClient/Temp/
+GameClient/Logs/
+GameClient/obj/
+GameClient/.vs/
+GameClient/UserSettings/
+
+# Unity auto-generated project files
+GameClient/*.csproj
+GameClient/*.sln
+GameClient/*.slnx
