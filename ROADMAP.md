@@ -61,10 +61,14 @@ This document outlines the engineering architecture and milestone progression fo
 *   **Libraries:** `MemoryPack`, `NetStack.Serialization`
 *   **Deliverables:** Fixed-size item ID collections (`uint[]` arrays mapping to slots) inside the `ServerPlayer` model. Item pickups on the ground represented as minimal mathematical bounding shapes containing unique metadata tags.
 
-### 2.4 Mid-Combat Equipment Swapping & Dynamic Stat Re-computation
-*   **Goal:** Allow players to switch loadouts in the middle of a battle, recalculating base attributes instantly while preventing memory thrashing.
-*   **Libraries:** Pure C# Math Structs
-*   **Deliverables:** An attribute modifier calculator running within the shared math layout. Changing an item triggers a bitmask change, re-applying item modifiers to the player's core attributes (`MaxHealth`, `AttackSpeed`, `BaseDamage`) inside a single cache-friendly frame loop.
+### 2.4 Mid-Combat Equipment Swapping, Dynamic Attribute & Skill Granting
+*   **Goal:** Allow players to switch loadouts in the middle of a battle, immediately recalculating core combat attributes and toggling active/passive skill visibilities without memory thrashing.
+*   **Libraries:** Pure C# Math Structs, Bitwise Flags
+*   **Deliverables:** An item-to-modifier look-up calculator running within the shared math layout. Equipped slots are stored as flat item ID structs (`uint WeaponSlotID`, `uint ArmorSlotID`).
+    *   **Dynamic Attribute Modification:** Changing an item triggers a full attribute sweep. The server reads the base player stats, adds the raw item modifiers (`MaxHealth`, `AttackSpeed`, `BaseDamage`), and stores the result in a cache-friendly frame layout.
+    *   **Item-Granted Skills (Bitmask Toggling):** Items can grant entirely new skills or unlock weapon-specific abilities. The server tracks a player's allowed skill pool using a compact bitmask (`uint AllowedSkillsMask`). Equipping a specific item (e.g., a lightning staff) turns on specific bits in the mask, instantly granting the client access to the "Chain Lightning" spell loop.
+    *   **Hot-Bar Validation Safety:** If a player tries to send an input packet casting a skill that their current equipped items do not grant, the server's input validator catches the invalid skill bit mismatch and rejects the action before it updates the simulation frame.
+
 
 ---
 
