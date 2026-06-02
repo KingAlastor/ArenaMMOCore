@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="LiteNetLib" Version="2.1.4" />
+    <PackageReference Include="MemoryPack" Version="1.21.4" />
   </ItemGroup>
 
 	<Target Name="CopyToUnity" AfterTargets="Build">
@@ -20,7 +21,7 @@
 
 		<Copy SourceFiles="$(TargetDir)$(TargetName).dll" DestinationFolder="$(UnityPluginsDir)" ContinueOnError="false" />
 		<Copy SourceFiles="$(TargetDir)$(TargetName).pdb" DestinationFolder="$(UnityPluginsDir)" ContinueOnError="false" />
-		<Copy SourceFiles="$(TargetDir)LiteNetLib.dll"    DestinationFolder="$(UnityPluginsDir)" ContinueOnError="false" />
+		<Copy SourceFiles="$(TargetDir)LiteNetLib.dll" DestinationFolder="$(UnityPluginsDir)" ContinueOnError="false" />
 
 		<Message Importance="high" Text="Successfully copied compiled $(TargetName).dll framework directly to Unity Assets!" />
 	</Target>
