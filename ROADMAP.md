@@ -53,7 +53,7 @@ This document outlines the engineering architecture and milestone progression fo
 
 ### 2.2 Entity Persistence Layer & Cache
 *   **Goal:** Save and load player character arrays, stats, and equipment positions without stalling the high-frequency network tickers.
-*   **Libraries:** PostgreSQL or MongoDB, Dapper / Entity Framework Core (Async only), Redis (optional cluster caching)
+*   **Libraries:** PostgreSQL Dapper / Entity Framework Core (Async only), Redis for caching
 *   **Deliverables:** Headless database gateway layer operating strictly on independent asynchronous threads. On login, data maps to an active in-memory `ServerPlayer` structure.
 
 ### 2.3 Zero-Allocation Inventory & Loot Dropping
