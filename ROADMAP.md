@@ -22,6 +22,14 @@ This document outlines the engineering architecture and milestone progression fo
 *   **Libraries:** Unity Mathematics (`math.lerp`)
 *   **Deliverables:** `SnapshotElement` entity buffer arrays (`IBufferElementData`) and `NetworkMovementSystem` to playback historical points behind an intentional 100ms jitter buffer.
 
+### 1.3.5 Dynamic Entity Spawning & Lifecycle Management (Network Visibility Link)
+*   **Goal:** Efficiently spawn and destroy other players' visible DOTS entities on the client as they move in and out of your network visibility bubble.
+*   **Libraries:** Unity Entities (`EntityManager`, `EntityCommandBuffer`)
+*   **Deliverables:** A client-side structural registry system. When the `NetworkClientManager` reads a `ServerStatePacket`, it checks if an ECS entity with that `NetworkId` already exists.
+    *   **On First Sight:** If the ID is new, the system executes a zero-allocation entity replication step using a `Baking Prefab`, adds the `SnapshotElement` buffers, and prepares it for interpolation [1].
+    *   **On Visibility Lost / Disconnect:** If the server stops sending updates for a specific ID for a set duration (or explicitly sends a disconnect packet), the client uses an `EntityCommandBuffer` to destroy the entity and reclaim memory instantly.
+
+
 ### 1.4 Input Prediction & Reconciliation (Micro-Stutter Protection)
 *   **Goal:** Provide local players with immediate, lag-free responsiveness while enforcing strict server authority.
 *   **Libraries:** `SmoothNet` or custom circular state buffers
