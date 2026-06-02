@@ -4,8 +4,8 @@ This document outlines the engineering architecture and milestone progression fo
 
 ---
 
-## 🏗️ Phase 1: The Absolute Core (Networking & Spatial Simulation)
-**Goal:** Establish a rock-solid, zero-allocation foundation for client-server communication, movement interpolation, and spatial scalability up to 2,000 Concurrent Users (CCU).
+## 🏗️ Phase 1: The Absolute Core (Networking, Spatial Simulation & Security)
+**Goal:** Establish a rock-solid, zero-allocation foundation for client-server communication, movement interpolation, spatial scalability up to 2,000 Concurrent Users (CCU), and server-authoritative anti-cheat protections.
 
 ### 1.1 Automated Shared Data & Serialization
 *   **Goal:** Compile common data definitions once and share them instantly between the server and the Burst-compiled Unity client.
@@ -31,6 +31,15 @@ This document outlines the engineering architecture and milestone progression fo
 *   **Goal:** Mitigate the $O(N^2)$ networking bandwidth bottleneck by dropping bandwidth throughput from an impossible 38 Gbps to a manageable <1 Gbps.
 *   **Libraries:** `NetStack.Aggregation`
 *   **Deliverables:** A coordinate-to-cell mapping engine. The server divides worlds into 50x50m grid structures, restricting state packet distribution solely to entities inside a player's direct 9-cell visibility quadrant.
+
+### 1.6 Core Anti-Cheating & Input Validation (The "Trust No Client" Engine)
+*   **Goal:** Eliminate speed-hacking, teleportation, wall-clipping, and rapid-fire exploits at the socket layer before they reach the game logic.
+*   **Libraries:** Pure C# Math, `System.Math`
+*   **Deliverables:** Hard boundaries running inside the server input processing loop:
+    *   **Movement Vector Validation:** The server tracks a player's maximum allowed distance per tick ($Speed \times \Delta t$). If the incoming input packet moves the player further than this allowance (plus a tiny latency buffer), the movement is truncated or rejected, triggering a mandatory rubber-band snap.
+    *   **Time-Dilated Speed Check:** Detect and ban modified client speed-hacks by enforcing an input-to-time tracking variable. If a player submits 45 input frames inside a 1-second server window (where only 30 are mathematically allowed), the server Flags/Disconnects the peer for command throttling.
+    *   **Action Attack-Speed Cooldowns:** Skill invocation bits are ignored if the millisecond delta since the last activation is lower than the player's current dynamically calculated `AttackSpeed` state.
+
 
 ---
 
