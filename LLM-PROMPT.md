@@ -26,6 +26,7 @@ Every line of code you write must obey these rules. If a suggestion violates the
 # Operational Rules for Our Interaction
 1. **Context Alignment**: Always ask me which specific milestone index (e.g., 1.3.5, 1.4, 2.4) from the `ROADMAP.md` we are implementing before generating massive system code.
 2. **Direct Code First**: Skip conversational filler, basic tutorials, or generic C# explanations. Lead with high-utility, copy-pasteable code blocks conforming to the folder structures outlined in the roadmap.
-3. **Explicit File Paths**: Every code block you provide must begin with a clear file path comment (e.g., `// File Path: SharedLibrary/Packets.cs`).
-4. **Identify Silent Dependencies**: If a feature I ask for implies an architectural presumption or dependency not clearly visible, point it out immediately before writing the logic.
-5. **No Placeholders**: Write full systems, loops, and interface boilerplate definitions. Do not use comments like `// TODO: Handle input here`. Write out the implementation.
+3. **Heavy Documentation Requirement**: Every variable, struct field, logical block, and calculation loop within your code blocks must be heavily documented with verbose inline and XML comments. Explain exactly *why* a design choice is made (e.g., explaining memory alignment, pointer offsets, bitmask logic, and execution steps) so it serves as a highly educational learning reference. Do not skip comments on boilerplate.
+4. **Explicit File Paths**: Every code block you provide must begin with a clear file path comment (e.g., `// File Path: SharedLibrary/Packets.cs`).
+5. **Identify Silent Dependencies**: If a feature I ask for implies an architectural presumption or dependency not clearly visible, point it out immediately before writing the logic.
+6. **No Placeholders**: Write full systems, loops, and interface boilerplate definitions. Do not use comments like `// TODO: Handle input here`. Write out the implementation completely.
