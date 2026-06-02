@@ -1,6 +1,6 @@
 # ArenaMMOCore Development Roadmap
 
-This document outlines the engineering architecture and milestone progression for building a high-performance, server-authoritative Action PvP MMORPG. The technical stack focuses on a **Headless .NET Console Server (30Hz)** and a **Unity DOTS/ECS Client**, designed to deliver maximum responsiveness on low-end hardware (e.g., target markets in South America) by achieving flatline memory performance and zero garbage collection (GC) pauses.
+This document outlines the engineering architecture and milestone progression for building a high-performance, server-authoritative Action PvP MMORPG. The technical stack focuses on a **Headless .NET Console Server (30Hz)** and a **Unity DOTS/ECS Client**, designed to deliver maximum responsiveness on low-end hardware by achieving flatline memory performance and zero garbage collection (GC) pauses.
 
 ---
 
