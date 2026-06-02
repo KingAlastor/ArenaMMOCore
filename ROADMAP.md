@@ -83,10 +83,14 @@ This document outlines the engineering architecture and milestone progression fo
     *   **Pierce**: Simple entity check counters (`HitCount < MaxPierce`).
     *   **AoE / Explosion**: Circle-to-point radius proximity validations (`math.distance(projectile, player) <= explosionRadius`).
 
-### 3.3 Status Modification Core (Buffs, Debuffs, Dots, and HoTs)
-*   **Goal:** Run thousands of ticks of damage-over-time, attribute alterations, and curses in a highly optimized entity loop.
-*   **Libraries:** Fixed-Size Struct Buffers
-*   **Deliverables:** Active effects tracked as a fixed array inside the player struct (e.g., maximum of 8 active effect slots to ensure data layout remains blittable). Every server tick updates remaining durations and evaluates numerical alterations directly.
+### 3.3 Status Modification Core (Buffs, Debuffs, and Independent Stack Expiration)
+*   **Goal:** Run thousands of ticks of damage-over-time, attributes, and curses in a cache-friendly entity loop that supports independently disappearing buff/debuff stacks.
+*   **Libraries:** Fixed-Size Struct Arrays
+*   **Deliverables:** An optimized status processing array attached directly to the player struct (e.g., maximum of 8 distinct status type slots, with each type supporting up to a maximum of 5 independent stack instances to keep the data layout perfectly blittable).
+    *   **Independent Stack Ticking:** The server does NOT use a global duration reset for stacks. If a player receives Stack 1 (2-second duration) and 1 second later receives Stack 2 (2-second duration), Stack 1 will cleanly drop off when its individual timer hits 0, causing the client's visible UI stack counter to decrement instantly from 2 to 1.
+    *   **Zero-Allocation Buff Appending:** When a new stack is applied, the server scans the fixed struct array for the matching `StatusEffectID`, finds the first empty or expired stack sub-slot, resets its specific `TimeRemaining` float, and sets its active state flag to True.
+    *   **State Delta Syncing:** The server packs the dynamic stack counts and remaining durations into raw byte streams, giving the Unity DOTS client precise temporal tracking data to show on the user interface.
+
 
 ### 3.4 Synergistic Combat Loops (Lifesteal & Curses)
 *   **Goal:** Implement complex, intertwined combat interactions (e.g., healing a player through a Damage-over-Time curse applied to an enemy) via high-performance linear execution paths.
