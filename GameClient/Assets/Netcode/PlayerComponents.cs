@@ -11,4 +11,18 @@ namespace GameClient
 
     // Marks this specific entity as the local player running on this PC
     public struct LocalPlayerTag : IComponentData { }
+
+    //Stores a single historical network point in memory
+    public struct SnapshotElement : IBufferElementData
+    {
+        public float3 Position;
+        public long Timestamp;
+    }
+
+    //Controls the local interpolation clock state for this specific entity
+    public struct InterpolationStateComponent : IComponentData
+    {
+        public double InterpolationTime; // The current reading "playback head" time
+        public bool IsInitialized;
+    }
 }

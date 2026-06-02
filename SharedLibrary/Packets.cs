@@ -26,5 +26,6 @@ namespace SharedLibrary
         public uint NetworkId;
         public float PositionX;
         public float PositionZ;
+        public long Timestamp;
     }
 }

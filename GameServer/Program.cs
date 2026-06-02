@@ -52,7 +52,8 @@ namespace GameServer
         {
             NetworkId = player.Id,
             PositionX = player.PositionX,
-            PositionZ = player.PositionZ
+            PositionZ = player.PositionZ,
+            Timestamp = stopwatch.ElapsedMilliseconds
         };
 
         // Pass our pre-allocated scratchBuffer array cleanly into MemoryPack

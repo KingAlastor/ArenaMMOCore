@@ -17,6 +17,9 @@ namespace GameClient
                 // Add the network identifier component
                 AddComponent(entity, new NetworkUserComponent { NetworkId = 0 });
 
+                AddBuffer<SnapshotElement>(entity);
+                AddComponent<InterpolationStateComponent>(entity);
+
                 // If this is local character, flag it so the system reads keyboard inputs
                 if (authoring.IsLocalPlayer)
                 {

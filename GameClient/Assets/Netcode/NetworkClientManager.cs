@@ -14,6 +14,7 @@ namespace GameClient
 
         public byte CurrentInputMask; 
         public float3 ServerPositionUpdate;
+        public long ServerTimestampUpdate;
         public bool HasUpdate;
 
         private byte[] _sendScratchBuffer = new byte[256];
@@ -61,6 +62,7 @@ namespace GameClient
             var state = NetworkSerializer.ReadStruct<ServerStatePacket>(bytes);
 
             ServerPositionUpdate = new float3(state.PositionX, 0, state.PositionZ);
+            ServerTimestampUpdate = state.Timestamp;
             HasUpdate = true;
         }
 
