@@ -168,3 +168,4 @@ Goal: Engineer a deterministic, lag-compensated action combat framework that sup
 *   **Goal:** Handle player transitions across world zone boundaries automatically without breaking immersion or dropping active inventory caches.
 *   **Libraries:** WebSockets or private internal UDP clusters
 *   **Deliverables:** Gateway handoff loops. When a player steps onto a boundary trigger coordinate in Zone A, Zone A saves their state, serializes a migration token, pushes it to Zone B, and sends a single small network instruction telling the Unity DOTS client to disconnect from `Port 5001` and seamlessly connect to `Port 5002`.
+
