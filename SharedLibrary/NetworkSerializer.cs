@@ -4,25 +4,35 @@ using MemoryPack;
 
 namespace SharedLibrary
 {
+    /// <summary>
+    /// Zero-allocation helpers for serializing blittable packets to reusable network buffers.
+    /// </summary>
     public static class NetworkSerializer
     {
-        // Thread-safe reusable buffer writer to prevent concurrent modification issues
+        // One writer per thread avoids cross-thread races while still reusing the same backing array.
         [ThreadStatic]
         private static ArrayBufferWriter<byte>? _perThreadBufferWriter;
 
         private static ArrayBufferWriter<byte> GetBufferWriter()
         {
-            // Initializes the zero-allocation array buffer once per execution thread
+            // Lazily create the per-thread writer once, then reuse it for all future packets on that thread.
             return _perThreadBufferWriter ??= new ArrayBufferWriter<byte>(1024);
         }
 
-        // Serializes a struct cleanly into a reusable byte array destination
+        /// <summary>
+        /// Serializes a packet struct into a caller-owned scratch buffer.
+        /// </summary>
+        /// <typeparam name="T">Blittable packet struct type.</typeparam>
+        /// <param name="targetBuffer">Destination byte array reused by transport code.</param>
+        /// <param name="packet">Packet value to serialize.</param>
+        /// <param name="bytesWritten">Exact serialized payload length.</param>
         public static void WriteStruct<T>(byte[] targetBuffer, ref T packet, out int bytesWritten) where T : struct
         {
             var writer = GetBufferWriter();
-            writer.Clear(); // Completely reset the writer's write head marker (Zero Heap Allocations)
+            // Reset the write cursor while preserving allocated capacity.
+            writer.Clear();
 
-            // MemoryPack serializes directly into our native buffer layout
+            // MemoryPack writes the binary payload straight into the reusable writer buffer.
             MemoryPackSerializer.Serialize(writer, packet);
 
             ReadOnlySpan<byte> serializedOutput = writer.WrittenSpan;
@@ -31,11 +41,16 @@ namespace SharedLibrary
             if (targetBuffer.Length < bytesWritten)
                 throw new ArgumentException($"Target destination buffer is too small! Needs {bytesWritten} bytes.");
 
-            // Blit the memory data directly into your network scratch buffer array
+            // Copy the exact payload into the caller's transport scratch array.
             serializedOutput.CopyTo(targetBuffer);
         }
 
-        // Reads data back out of a raw, read-only memory stream with zero allocation friction
+        /// <summary>
+        /// Deserializes a packet struct from a raw network byte span.
+        /// </summary>
+        /// <typeparam name="T">Expected packet struct type.</typeparam>
+        /// <param name="sourceBuffer">Source payload bytes.</param>
+        /// <returns>Hydrated packet value.</returns>
         public static T ReadStruct<T>(ReadOnlySpan<byte> sourceBuffer) where T : struct
         {
             return MemoryPackSerializer.Deserialize<T>(sourceBuffer);

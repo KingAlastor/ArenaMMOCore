@@ -4,18 +4,23 @@ using Unity.Mathematics;
 
 namespace GameClient
 {
+    /// <summary>
+    /// Consumes server snapshots and interpolates entity transforms at render frame rate.
+    /// </summary>
     public partial struct NetworkMovementSystem : ISystem
     {
-        private const double InterpolationDelayMs = 100.0; // 100ms buffer to safely survive network spikes
+        // Render 100ms behind server time so minor packet jitter does not cause visible snapping.
+        private const double InterpolationDelayMs = 100.0;
 
         public void OnUpdate(ref SystemState state)
         {
             var instance = NetworkClientManager.Instance;
             if (instance == null) return;
 
+            // Convert frame delta to milliseconds to match packet timestamp units.
             float deltaTimeMs = SystemAPI.Time.DeltaTime * 1000f;
 
-            // Phase A: Consume incoming network frames and append them straight into our native entity buffers
+            // Phase A: append newest server snapshot into each entity history buffer.
             if (instance.HasUpdate)
             {
                 float3 position = instance.ServerPositionUpdate;
@@ -25,8 +30,8 @@ namespace GameClient
                 foreach (var buffer in SystemAPI.Query<DynamicBuffer<SnapshotElement>>())
                 {
                     buffer.Add(new SnapshotElement { Position = position, Timestamp = timestamp });
-                    
-                    // Keep the buffer clean: remove old data points if they pile past 20 snapshots
+
+                    // Keep snapshot history bounded to stable memory usage per entity.
                     if (buffer.Length > 20)
                     {
                         buffer.RemoveAt(0);
@@ -34,25 +39,25 @@ namespace GameClient
                 }
             }
 
-            // Phase B: Interpolation Engine
-            // This runs natively at whatever frame rate your monitor handles (60 FPS, 144 FPS, etc.)
+            // Phase B: interpolate between two snapshots around current render time.
             foreach (var (transform, buffer, interpState) in 
                     SystemAPI.Query<RefRW<LocalTransform>, DynamicBuffer<SnapshotElement>, RefRW<InterpolationStateComponent>>())
             {
-                if (buffer.Length < 2) continue; // Need at least 2 frames to calculate structural vectors
+                // Need at least two snapshots to build an interpolation window.
+                if (buffer.Length < 2) continue;
 
-                // Initialize the structural playback clock head matching our delay requirements
+                // Initialize playback clock from first snapshot to preserve continuity.
                 if (!interpState.ValueRO.IsInitialized)
                 {
                     interpState.ValueRW.InterpolationTime = buffer[0].Timestamp;
                     interpState.ValueRW.IsInitialized = true;
                 }
 
-                // Advance our visualization clock head
+                // Move playback time forward using local frame delta.
                 interpState.ValueRW.InterpolationTime += deltaTimeMs;
                 double renderTime = interpState.ValueRO.InterpolationTime - InterpolationDelayMs;
 
-                // Find the two snapshots that surround our render timeline position
+                // Find two snapshots that bracket current render time.
                 SnapshotElement targetA = buffer[0];
                 SnapshotElement targetB = buffer[1];
                 bool foundWindow = false;
@@ -70,19 +75,19 @@ namespace GameClient
 
                 if (foundWindow)
                 {
-                    // Calculate exactly how far along we are between target frame A and target frame B
+                    // Compute normalized interpolation factor between window endpoints.
                     long timeDifference = targetB.Timestamp - targetA.Timestamp;
                     if (timeDifference > 0)
                     {
                         float lerpFactor = (float)((renderTime - targetA.Timestamp) / timeDifference);
-                        
-                        // Smoothly calculate position using CPU-optimized math logic
+
+                        // Blend positions for smooth visual motion.
                         transform.ValueRW.Position = math.lerp(targetA.Position, targetB.Position, lerpFactor);
                     }
                 }
                 else if (renderTime > buffer[buffer.Length - 1].Timestamp)
                 {
-                    // If network packets drop entirely, fallback smoothly to our latest valid coordinate position
+                    // If we're beyond known history, clamp to latest authoritative sample.
                     transform.ValueRW.Position = buffer[buffer.Length - 1].Position;
                 }
             }
