@@ -22,6 +22,12 @@
 		<Copy SourceFiles="$(TargetDir)$(TargetName).dll" DestinationFolder="$(UnityPluginsDir)" ContinueOnError="false" />
 		<Copy SourceFiles="$(TargetDir)$(TargetName).pdb" DestinationFolder="$(UnityPluginsDir)" ContinueOnError="false" />
 		<Copy SourceFiles="$(TargetDir)LiteNetLib.dll" DestinationFolder="$(UnityPluginsDir)" ContinueOnError="false" />
+		<Copy SourceFiles="$(TargetDir)MemoryPack.Core.dll" DestinationFolder="$(UnityPluginsDir)" ContinueOnError="false" />
+		<Copy SourceFiles="$(TargetDir)System.Buffers.dll" DestinationFolder="$(UnityPluginsDir)" ContinueOnError="false" />
+		<Copy SourceFiles="$(TargetDir)System.Memory.dll" DestinationFolder="$(UnityPluginsDir)" ContinueOnError="false" />
+		<Copy SourceFiles="$(TargetDir)System.Runtime.CompilerServices.Unsafe.dll" DestinationFolder="$(UnityPluginsDir)" ContinueOnError="false" />
+		<Copy SourceFiles="$(TargetDir)System.Numerics.Vectors.dll" DestinationFolder="$(UnityPluginsDir)" ContinueOnError="false" />
+		<Copy SourceFiles="$(TargetDir)System.Collections.Immutable.dll" DestinationFolder="$(UnityPluginsDir)" ContinueOnError="false" />
 
 		<Message Importance="high" Text="Successfully copied compiled $(TargetName).dll framework directly to Unity Assets!" />
 	</Target>
