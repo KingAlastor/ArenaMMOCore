@@ -72,17 +72,27 @@ namespace GameServer
         private static NetManager _netManager = null!;
         private static float _deltaTime;
         private static bool _applyInterestGrid;
+        private static ServerRuntimeConfig _config = null!;
+
+        // Dedicated per-thread packet chunk buffer to avoid allocations inside the serialization loops
+        [ThreadStatic]
+        private static byte[]? _packetChunkScratchBuffer;
+
+        private static byte[] GetPacketChunkBuffer()
+        {
+            return _packetChunkScratchBuffer ??= new byte[256];
+        }
 
         /// <summary>
         /// Boots networking and runs the fixed-step simulation loop.
         /// </summary>
         private static void Main(string[] args)
         {
-            ServerRuntimeConfig runtimeConfig = LoadRuntimeConfig(args);
-            int tickRate = ResolveTickRate(runtimeConfig.ServerMode);
+            _config = LoadRuntimeConfig(args);
+            int tickRate = ResolveTickRate(_config.ServerMode);
             _deltaTime = 1f / tickRate;
 
-            _applyInterestGrid = runtimeConfig.ServerMode == ServerMode.MMO && runtimeConfig.EnableInterestGrid;
+            _applyInterestGrid = _config.ServerMode == ServerMode.MMO && _config.EnableInterestGrid;
 
             Program server = new Program();
             _netManager = new NetManager(server) { AutoRecycle = true };
@@ -96,8 +106,8 @@ namespace GameServer
             // Expanded scratch buffer capacity to safely accommodate complete combined world snapshots
             byte[] scratchBuffer = new byte[65535];
 
-            Console.WriteLine($"MemoryPack server running in {runtimeConfig.ServerMode} mode at {tickRate}Hz.");
-            Console.WriteLine($"Interest grid enabled: {_applyInterestGrid} | CellSize={runtimeConfig.GridCellSize} | MaxVisible={runtimeConfig.MaxVisibleEntitiesPerClient}");
+            Console.WriteLine($"MemoryPack server running in {_config.ServerMode} mode at {tickRate}Hz.");
+            Console.WriteLine($"Interest grid enabled: {_applyInterestGrid} | CellSize={_config.GridCellSize} | MaxVisible={_config.MaxVisibleEntitiesPerClient}");
 
             while (true)
             {
@@ -174,7 +184,7 @@ namespace GameServer
                 if ((player.LastInput & (byte)InputFlags.MoveLeft) != 0) moveX -= 1f;
                 if ((player.LastInput & (byte)InputFlags.MoveRight) != 0) moveX += 1f;
 
-                // FIX: Normalize vectors to prevent rapid diagonal movement speeds
+                // Normalize vectors to prevent rapid diagonal movement speeds
                 if (moveX != 0f || moveZ != 0f)
                 {
                     float length = MathF.Sqrt((moveX * moveX) + (moveZ * moveZ));
@@ -186,52 +196,65 @@ namespace GameServer
                 }
             }
 
-            // 2. Optimized Serialization and State Batching
-            if (!_applyInterestGrid)
+            // Grab our pooled, non-allocating single packet serialization workspace
+            byte[] chunkBuffer = GetPacketChunkBuffer();
+
+            // 2. Zero-Allocation Per-Peer Loop (Fills and fires sequential customized states)
+            for (int o = 0; o < playerCount; o++)
             {
-                // ARENA MODE: Bundle ALL players into one single array and broadcast it once
-                // This maximizes MTU layout efficiency and avoids generating thousands of loose packets
-                ServerStatePacket[] globalSnapshot = new ServerStatePacket[playerCount];
-                for (int i = 0; i < playerCount; i++)
+                ServerPlayer observer = _activePlayerIterationList[o];
+                int bytesWrittenThisPeer = 0;
+                int visibleEntitiesCount = 0;
+
+                for (int t = 0; t < playerCount; t++)
                 {
-                    ServerPlayer p = _activePlayerIterationList[i];
-                    globalSnapshot[i] = new ServerStatePacket
+                    ServerPlayer target = _activePlayerIterationList[t];
+
+                    // Check upper limit bounds set by config file to safeguard low-spec clients
+                    if (visibleEntitiesCount >= _config.MaxVisibleEntitiesPerClient) break;
+
+                    // MMO MODE Grid distance checking filtering rule
+                    if (_applyInterestGrid)
                     {
-                        NetworkId = p.Id,
-                        PositionX = p.PositionX,
-                        PositionZ = p.PositionZ,
+                        float dx = target.PositionX - observer.PositionX;
+                        float dz = target.PositionZ - observer.PositionZ;
+                        float distanceSq = (dx * dx) + (dz * dz);
+                        float maxRange = _config.GridCellSize;
+
+                        // Skip entities outside visibility boundaries
+                        if (distanceSq > (maxRange * maxRange)) continue;
+                    }
+
+                    // Map state data directly to temporary stack frame memory (0 allocations)
+                    ServerStatePacket statePacket = new ServerStatePacket
+                    {
+                        NetworkId = target.Id,
+                        PositionX = target.PositionX,
+                        PositionZ = target.PositionZ,
                         Timestamp = elapsedMilliseconds
                     };
+
+                    // FACTION/TEAM SECURITY FILTER EXTENSION HOOK:
+                    // if (target.Faction != observer.Faction) { statePacket.ActiveBuffs = 0; }
+
+                    // Safety bounds check to ensure payload fits inside remaining scratchBuffer space
+                    if (bytesWrittenThisPeer + 64 > scratchBuffer.Length) break;
+
+                    // Serialize isolated packet reference safely meeting the generic 'where T : struct' rules
+                    NetworkSerializer.WriteStruct(chunkBuffer, ref statePacket, out int bytesWrittenThisChunk);
+
+                    // Blast memory block directly down onto our output stream window
+                    Array.Copy(chunkBuffer, 0, scratchBuffer, bytesWrittenThisPeer, bytesWrittenThisChunk);
+                    
+                    bytesWrittenThisPeer += bytesWrittenThisChunk;
+                    visibleEntitiesCount++;
                 }
 
-                // Serialize the entire collection array into the scratch memory buffer
-                NetworkSerializer.WriteStruct(scratchBuffer, ref globalSnapshot, out int bytesWritten);
-                BroadcastToAllPeers(scratchBuffer, bytesWritten);
-            }
-            else
-            {
-                // MMO MODE: Temporary fallback until your Grid of Interest systems are integrated.
-                // Will evaluate each player's local quadrant boundaries individually.
-                ServerStatePacket[] globalSnapshot = new ServerStatePacket[playerCount];
-                for (int i = 0; i < playerCount; i++)
+                // Send the custom packed payload directly out to this individual connection channel
+                if (bytesWrittenThisPeer > 0)
                 {
-                    ServerPlayer p = _activePlayerIterationList[i];
-                    globalSnapshot[i] = new ServerStatePacket { NetworkId = p.Id, PositionX = p.PositionX, PositionZ = p.PositionZ, Timestamp = elapsedMilliseconds };
+                    observer.Peer.Send(scratchBuffer, 0, bytesWrittenThisPeer, DeliveryMethod.Unreliable);
                 }
-                NetworkSerializer.WriteStruct(scratchBuffer, ref globalSnapshot, out int bytesWritten);
-                BroadcastToAllPeers(scratchBuffer, bytesWritten);
-            }
-        }
-
-        /// <summary>
-        /// Sends the prepared payload to every currently connected peer.
-        /// </summary>
-        private static void BroadcastToAllPeers(byte[] payload, int bytesWritten)
-        {
-            int count = _activePlayerIterationList.Count;
-            for (int i = 0; i < count; i++)
-            {
-                _activePlayerIterationList[i].Peer.Send(payload, 0, bytesWritten, DeliveryMethod.Unreliable);
             }
         }
 
