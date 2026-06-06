@@ -23,6 +23,7 @@ namespace SharedLibrary
 
     /// <summary>
     /// Client-to-server input frame serialized through MemoryPack without heap allocations.
+    /// First entry step from Unity
     /// </summary>
     [MemoryPackable]
     public partial struct ClientInputPacket
