@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 
 namespace GameServer
@@ -11,7 +12,11 @@ namespace GameServer
     /// </summary>
     internal sealed class Program
     {
-        private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
+        private static readonly JsonSerializerOptions _jsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
         private static readonly Dictionary<ServerMode, int> _tickRateByMode = new()
         {
             [ServerMode.Arena] = 128,
