@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using SharedLibrary;
 
@@ -10,6 +11,9 @@ namespace GameServer
     {
         private const float MoveSpeed = 5.0f;
         private static float _deltaTime;
+
+        // Tick counter used to throttle position logs to roughly once per second.
+        private static int _tickCounter;
 
         /// <summary>
         /// Configures the fixed simulation timestep derived from the server tick rate.
@@ -46,6 +50,18 @@ namespace GameServer
 
                     player.PositionX += moveX * MoveSpeed * _deltaTime;
                     player.PositionZ += moveZ * MoveSpeed * _deltaTime;
+                }
+            }
+
+            // Log all player positions once per second (every tickRate ticks) to confirm movement.
+            _tickCounter++;
+            if (_tickCounter % 128 == 0)
+            {
+                for (int i = 0; i < playerCount; i++)
+                {
+                    ServerPlayer p = players[i];
+                    string maskBinary = Convert.ToString(p.LastInput, 2).PadLeft(8, '0');
+                    Console.WriteLine($"[Sim tick={_tickCounter}] Player {p.Id}: pos=({p.PositionX:F2}, {p.PositionZ:F2}) input=0b{maskBinary}");
                 }
             }
         }

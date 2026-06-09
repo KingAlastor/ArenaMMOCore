@@ -31,5 +31,10 @@ namespace GameServer
         /// Most recent input bitmask received from the client.
         /// </summary>
         public byte LastInput;
+
+        /// <summary>
+        /// Rolling count of received input packets; used to throttle server-side receive logs.
+        /// </summary>
+        public int PacketCount;
     }
 }

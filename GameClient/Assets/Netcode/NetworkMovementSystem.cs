@@ -1,6 +1,7 @@
 using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
+using UnityEngine;
 
 namespace GameClient
 {
@@ -11,6 +12,9 @@ namespace GameClient
     {
         // Render 100ms behind server time so minor packet jitter does not cause visible snapping.
         private const double InterpolationDelayMs = 100.0;
+
+        // Frame counter used to throttle console output to roughly once per second at 60fps.
+        private int _logFrameCounter;
 
         public void OnUpdate(ref SystemState state)
         {
@@ -83,6 +87,11 @@ namespace GameClient
 
                         // Blend positions for smooth visual motion.
                         transform.ValueRW.Position = math.lerp(targetA.Position, targetB.Position, lerpFactor);
+
+                        // Log interpolated position once per second to confirm movement is live.
+                        _logFrameCounter++;
+                        if (_logFrameCounter % 60 == 0)
+                            Debug.Log($"[Movement] Interpolated pos=({transform.ValueRO.Position.x:F2}, {transform.ValueRO.Position.z:F2}) lerp={lerpFactor:F3} renderT={renderTime:F0}ms");
                     }
                 }
                 else if (renderTime > buffer[buffer.Length - 1].Timestamp)

@@ -1,7 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <!-- net8.0 is required so MemoryPack's source generator emits the static-abstract IMemoryPackable<T>
+         implementations consumed by the net10.0 GameServer. netstandard2.1 is retained for the Unity DLL copy. -->
+    <TargetFrameworks>netstandard2.1;net8.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <!-- Required so NuGet DLLs (LiteNetLib) are copied to the build output, which the CopyToUnity target then picks up. -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
@@ -12,7 +14,8 @@
     <PackageReference Include="MemoryPack" Version="1.21.4" />
   </ItemGroup>
 
-	<Target Name="CopyToUnity" AfterTargets="Build">
+	<!-- Only copy the netstandard2.1 output; Unity cannot consume net8.0 assemblies directly. -->
+	<Target Name="CopyToUnity" AfterTargets="Build" Condition="'$(TargetFramework)' == 'netstandard2.1'">
 		<PropertyGroup>
 			<UnityPluginsDir>$(ProjectDir)..\GameClient\Assets\Plugins\</UnityPluginsDir>
 		</PropertyGroup>

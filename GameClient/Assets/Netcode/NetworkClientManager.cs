@@ -36,6 +36,12 @@ namespace GameClient
         // Reusable outbound packet buffer to avoid per-frame allocations.
         private byte[] _sendScratchBuffer = new byte[256];
 
+        // Tracks last sent input mask so we only log on actual input changes.
+        private byte _lastSentInputMask;
+
+        // Rolling counter of received server snapshots used to throttle console spam.
+        private int _snapshotCount;
+
         private void Awake()
         {
             Instance = this;
@@ -72,6 +78,14 @@ namespace GameClient
 
             CurrentInputMask = mask;
 
+            // Log only when the input state actually changes to avoid flooding the console.
+            if (mask != _lastSentInputMask)
+            {
+                string maskBinary = Convert.ToString(mask, 2).PadLeft(8, '0');
+                Debug.Log($"[Input] Mask changed -> 0b{maskBinary} (W={kb.wKey.isPressed} S={kb.sKey.isPressed} A={kb.aKey.isPressed} D={kb.dKey.isPressed})");
+                _lastSentInputMask = mask;
+            }
+
             ClientInputPacket inputPacket = new ClientInputPacket { SequenceNumber = 1, Inputs = mask };
 
             // Serialize directly into the shared outbound scratch array.
@@ -91,13 +105,26 @@ namespace GameClient
             ServerPositionUpdate = new float3(state.PositionX, 0, state.PositionZ);
             ServerTimestampUpdate = state.Timestamp;
             HasUpdate = true;
+
+            // Log one in every 60 snapshots (~1/sec at 60fps) to confirm data is flowing.
+            _snapshotCount++;
+            if (_snapshotCount % 60 == 0)
+                Debug.Log($"[Snapshot #{_snapshotCount}] pos=({state.PositionX:F2}, {state.PositionZ:F2}) t={state.Timestamp}ms");
         }
 
         // Store the transport peer after successful handshake.
-        public void OnPeerConnected(NetPeer peer) => _serverPeer = peer;
+        public void OnPeerConnected(NetPeer peer)
+        {
+            _serverPeer = peer;
+            Debug.Log($"[Network] Connected to server: {peer.Address}");
+        }
 
         // Clear peer reference on disconnect to stop outbound sends.
-        public void OnPeerDisconnected(NetPeer peer, DisconnectInfo info) => _serverPeer = null;
+        public void OnPeerDisconnected(NetPeer peer, DisconnectInfo info)
+        {
+            _serverPeer = null;
+            Debug.LogWarning($"[Network] Disconnected from server. Reason: {info.Reason}");
+        }
 
         // Connection requests are not used on the client side because this process initiates outbound only.
         public void OnConnectionRequest(ConnectionRequest request) {}

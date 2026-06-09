@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using LiteNetLib;
 using SharedLibrary;
@@ -78,6 +79,14 @@ namespace GameServer
             if (_playersDict.TryGetValue(peer.Id, out ServerPlayer? player))
             {
                 player.LastInput = inputPacket.Inputs;
+                player.PacketCount++;
+
+                // Log every 128 packets (~1/sec at 128Hz) to confirm inputs are reaching the server.
+                if (player.PacketCount % 128 == 0)
+                {
+                    string maskBinary = Convert.ToString(player.LastInput, 2).PadLeft(8, '0');
+                    Console.WriteLine($"[NetRecv] Player {player.Id} pkt#{player.PacketCount}: input=0b{maskBinary}");
+                }
             }
         }
 
