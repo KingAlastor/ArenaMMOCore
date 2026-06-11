@@ -49,7 +49,7 @@ namespace GameServer
         /// </summary>
         public void OnPeerConnected(NetPeer peer)
         {
-            Console.WriteLine($"Client connected: ID {peer.Id}");
+            Console.WriteLine($"[Connection] Client connected: ID {peer.Id} from {peer.Port}");
             ServerPlayer newPlayer = new ServerPlayer { Id = (uint)peer.Id, Peer = peer };
 
             _playersDict.Add(peer.Id, newPlayer);
@@ -61,7 +61,7 @@ namespace GameServer
         /// </summary>
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo info)
         {
-            Console.WriteLine($"Client disconnected: ID {peer.Id}");
+            Console.WriteLine($"[Connection] Client disconnected: ID {peer.Id}, Reason: {info.Reason}");
             if (_playersDict.Remove(peer.Id, out ServerPlayer? removedPlayer))
             {
                 _activePlayerIterationList.Remove(removedPlayer);

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
@@ -36,7 +37,7 @@ namespace GameServer
             NetworkEngine networkEngine = new NetworkEngine();
             networkEngine.Start(5001);
 
-            SimulationEngine.Initialize(deltaTime);
+            SimulationEngine.Initialize(deltaTime, config.GridCellSize);
             SnapshotBroadcaster.Initialize(config, applyInterestGrid);
 
             Stopwatch stopwatch = Stopwatch.StartNew();
