@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using LiteNetLib;
 using SharedLibrary;
 
-namespace GameServer
+using GameServer.GameEngine;
+
+namespace GameServer.NetworkEngine
 {
     /// <summary>
     /// Zero-allocation per-peer snapshot serialization and delivery pipeline.

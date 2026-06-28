@@ -1,6 +1,6 @@
 using LiteNetLib;
 
-namespace GameServer
+namespace GameServer.GameEngine
 {
     /// <summary>
     /// Authoritative per-connection state tracked by the game server.
@@ -28,7 +28,7 @@ namespace GameServer
         public float PositionZ;
 
         /// <summary>
-        /// Most recent input bitmask received from the client.
+        /// The most recent input bitmask received from the client.
         /// </summary>
         public byte LastInput;
 

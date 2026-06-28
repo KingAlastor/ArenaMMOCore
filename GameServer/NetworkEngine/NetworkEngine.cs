@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using LiteNetLib;
 using SharedLibrary;
 
-namespace GameServer
+using GameServer.GameEngine;
+
+namespace GameServer.NetworkEngine
 {
     /// <summary>
     /// Transport layer wrapper that ingests raw packets and maintains active player collections.

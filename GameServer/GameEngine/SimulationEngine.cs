@@ -1,8 +1,6 @@
-using System;
-using System.Collections.Generic;
 using SharedLibrary;
 
-namespace GameServer
+namespace GameServer.GameEngine
 {
     /// <summary>
     /// Authoritative movement math executed against in-memory player state each tick.
@@ -18,7 +16,7 @@ namespace GameServer
 
         // TODO: Add pruning/pooling for stale collision grid cells if long-running MMO sessions cause
         // this dictionary to retain too many previously visited empty cells.
-        private static readonly Dictionary<long, List<int>> _collisionGrid = new();
+        private static readonly Dictionary<long, List<int>> CollisionGrid = new();
 
         // Tick counter used to throttle position logs to roughly once per second.
         private static int _tickCounter;
@@ -91,10 +89,10 @@ namespace GameServer
                 int cellZ = WorldToCell(player.PositionZ);
                 long cellKey = PackCellKey(cellX, cellZ);
 
-                if (!_collisionGrid.TryGetValue(cellKey, out List<int>? cellPlayers))
+                if (!CollisionGrid.TryGetValue(cellKey, out List<int>? cellPlayers))
                 {
                     cellPlayers = new List<int>();
-                    _collisionGrid[cellKey] = cellPlayers;
+                    CollisionGrid[cellKey] = cellPlayers;
                 }
 
                 cellPlayers.Add(i);
@@ -112,7 +110,7 @@ namespace GameServer
                     {
                         long neighborCellKey = PackCellKey(originCellX + offsetX, originCellZ + offsetZ);
 
-                        if (!_collisionGrid.TryGetValue(neighborCellKey, out List<int>? candidateIndices))
+                        if (!CollisionGrid.TryGetValue(neighborCellKey, out List<int>? candidateIndices))
                         {
                             continue;
                         }
@@ -136,7 +134,7 @@ namespace GameServer
         /// </summary>
         private static void ClearCollisionGrid()
         {
-            foreach (List<int> cellPlayers in _collisionGrid.Values)
+            foreach (List<int> cellPlayers in CollisionGrid.Values)
             {
                 cellPlayers.Clear();
             }
