@@ -1,39 +1,45 @@
+// File Path: GameClient/Assets/Netcode/PlayerAuthoring.cs
+
 using UnityEngine;
 using Unity.Entities;
 
 namespace GameClient
 {
+  /// <summary>
+  /// Authoring bridge that converts a scene GameObject into network-ready ECS components.
+  /// </summary>
+  public class PlayerAuthoring : MonoBehaviour
+  {
+    // Marks this authored entity as the local input authority during baking.
+    public bool IsLocalPlayer = true;
+
     /// <summary>
-    /// Authoring bridge that converts a scene GameObject into network-ready ECS components.
+    /// Converts authoring data into DOTS components at bake time.
     /// </summary>
-    public class PlayerAuthoring : MonoBehaviour
+    public class PlayerBaker : Baker<PlayerAuthoring>
     {
-        // Marks this authored entity as the local input authority during baking.
-        public bool IsLocalPlayer = true;
+      public override void Bake(PlayerAuthoring authoring)
+      {
+        // Request a dynamic transform because netcode updates position every frame.
+        Entity entity = GetEntity(TransformUsageFlags.Dynamic);
 
-        /// <summary>
-        /// Converts authoring data into DOTS components at bake time.
-        /// </summary>
-        public class PlayerBaker : Baker<PlayerAuthoring>
+        // Reserve network identity component for the server-assigned id received later in the snapshot header.
+        AddComponent(entity, new NetworkUserComponent
         {
-            public override void Bake(PlayerAuthoring authoring)
-            {
-                // Request a dynamic transform because netcode updates position every frame.
-                Entity entity = GetEntity(TransformUsageFlags.Dynamic);
+          NetworkId = NetworkUserComponent.UnassignedNetworkId,
+          LastSeenSnapshotSequence = 0
+        });
 
-                // Reserve network identity component for server-assigned id.
-                AddComponent(entity, new NetworkUserComponent { NetworkId = 0 });
+        // Add snapshot history and interpolation clock state used by movement system.
+        AddBuffer<SnapshotElement>(entity);
+        AddComponent<InterpolationStateComponent>(entity);
 
-                // Add snapshot history and interpolation clock state used by movement system.
-                AddBuffer<SnapshotElement>(entity);
-                AddComponent<InterpolationStateComponent>(entity);
-
-                // Add local tag only for the player that drives outbound input packets.
-                if (authoring.IsLocalPlayer)
-                {
-                    AddComponent<LocalPlayerTag>(entity);
-                }
-            }
+        // Add local tag only for the player that drives outbound input packets.
+        if (authoring.IsLocalPlayer)
+        {
+          AddComponent<LocalPlayerTag>(entity);
         }
+      }
     }
+  }
 }
